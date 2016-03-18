@@ -1,0 +1,30 @@
+---
+# This role contains common plays that will run on all nodes.
+
+- name: Install ntp 
+  apt: name=ntp state=present
+  tags: ntp
+
+- name: Configure ntp file
+  template: src=ntp.conf.j2 dest=/etc/ntp.conf
+  tags: ntp
+  notify: restart ntp
+
+- name: Start the ntp service
+  service: name=ntp state=started enabled=yes
+  tags: ntp
+
+#- name: insert iptables template
+#  template: src=iptables.j2 dest=/root/firewall.txt
+#  notify: restart iptables
+
+#- name: applying firewall
+#  shell: 'iptables-restore < /root/firewall.txt'
+
+- name: install iptables-persistent
+  apt: name=iptables-persistent
+
+- name: copy the iptables file rules
+  template: src=iptables.j2 dest=/etc/iptables/rules.v4 owner=root group=root mode=0644 backup=yes
+  notify:
+    - restart iptables-persistent

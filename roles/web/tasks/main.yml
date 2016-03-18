@@ -1,0 +1,74 @@
+---
+- name: Install mysql client and git
+  apt: name={{ item }} state=present
+  with_items:
+   - mysql-client
+   - libmysqlclient-dev
+   - git
+
+- name: Copy the code from repository
+  git: repo={{ repository }} version={{ webapp_version }} dest={{ app_dir }} force=yes
+  remote_user: prod_user
+
+- name: Install rails
+  command: gem install rails
+#  remote_user: prod_user
+
+- name: Make rvm dir accessible to prod_user
+  file:
+    path: /usr/local/rvm
+    state: directory
+    owner: prod_user
+    group: root
+    recurse: yes
+
+- name: Copy unicorn upstart script
+  copy: src=unicorn_init.sh dest=/etc/init.d/unicorn mode="u=rwx,g=r,o=r"
+
+- name: Add unicorn service
+  command: update-rc.d unicorn defaults
+ 
+- name: Make service unicorn password free
+  command: 'echo "prod_user ALL=NOPASSWD: /usr/bin/service unicorn *" > /etc/sudoers.d/unicorn'
+
+- name: Install database_yml
+  template: src=database.yml.j2 dest={{ app_dir }}/config/database.yml force=yes mode="u=rw,g=r,o=r" owner=prod_user
+
+- name: Install db_secrets
+  template: src=db_secrets.j2 dest={{ app_dir }}/config/.db_secrets force=yes mode="u=rwx,g=r,o=r" owner=prod_user
+
+- name: Install bundle
+  command: 'bundle install'
+  remote_user: prod_user
+  args:
+    chdir: '{{ app_dir }}'
+  environment:
+    RAILS_ENV: '{{ rails_env }}'
+
+- name: Precompile assets
+  command: rake assets:precompile
+  remote_user: prod_user
+  args:
+    chdir: '{{ app_dir }}'
+  environment:
+    RAILS_ENV: '{{ rails_env }}'
+
+- name: Migrate database
+  command: rake db:migrate
+  remote_user: prod_user
+  args:
+    chdir: '{{ app_dir }}'
+  environment:
+    RAILS_ENV: '{{ rails_env }}'
+
+# Setup nginx here
+- include: nginx.yml tags=nginx
+
+- name: restart unicorn
+#service: name=unicorn state=restarted
+  command: 'sudo service unicorn restart'
+  remote_user: prod_user
+
+- name: restart nginx
+  command: 'sudo service nginx restart'
+  remote_user: prod_user

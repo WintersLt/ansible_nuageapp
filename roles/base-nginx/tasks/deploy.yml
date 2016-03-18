@@ -1,0 +1,14 @@
+- name: create user
+  user:
+    name: prod_user
+    createhome: yes
+    shell: /bin/bash
+    group: root
+    generate_ssh_key: yes
+    password: '$1$random$PS0htTZ4p9eBUpvZBNH7o.'
+
+- name: copy my ssh key
+  authorized_key:
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    user: "prod_user"
+    state: present

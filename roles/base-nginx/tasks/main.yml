@@ -1,0 +1,17 @@
+---
+# This role installs nginx
+
+- name: Install nginx
+  apt: name={{ item }} state=present
+  with_items:
+   - nginx
+
+# create prod_user
+- include: deploy.yml tags=deploy
+
+- name: Make service nginx password free
+  command: 'echo "prod_user ALL=NOPASSWD: /usr/bin/service nginx *" > /etc/sudoers.d/nginx'
+
+- name: nginx service state
+  command: 'sudo service nginx restart'
+  remote_user: prod_user

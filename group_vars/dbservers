@@ -1,0 +1,6 @@
+---
+# The variables file used by the playbooks in the dbservers group.
+# dont checkin your password on public repos
+
+mysqlservice: mysql
+mysql_port: 3306

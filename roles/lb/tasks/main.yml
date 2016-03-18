@@ -1,0 +1,14 @@
+---
+# This role installs nginx and configures it as lb.
+
+# installation already done through common
+
+- name: Copy sites enabled file for lb
+  copy: src=nginx-site.conf dest=/etc/nginx/sites-enabled/default
+
+- name: Generate and send the nginx.cnf file
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+  notify: restart nginx
+
+- name: Start the nginx service
+  service: name=nginx state=started enabled=yes
